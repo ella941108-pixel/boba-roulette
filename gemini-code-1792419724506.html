@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BobaRoulette - 今天喝哪家？手搖隨機抽選器</title>
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --card-bg: #ffffff;
+      --primary: #c28854;
+      --primary-hover: #aa7240;
+      --accent: #e6a86c;
+      --text: #3d312a;
+      --text-muted: #8c7e75;
+      --border: #f0e6dc;
+      --shadow: 0 10px 30px rgba(139, 94, 60, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .main-container {
+      max-width: 800px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    /* 抽籤主要舞台 */
+    .slot-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .slot-box {
+      width: 100%;
+      background: #fdfaf6;
+      border: 2px dashed var(--accent);
+      border-radius: 20px;
+      padding: 30px 20px;
+      margin: 20px 0;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .slot-store {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .slot-drink {
+      font-size: 18px;
+      color: var(--text);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .slot-specs {
+      font-size: 14px;
+      background: #eeddcc;
+      color: #634329;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .btn-spin {
+      background: var(--primary);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      border: none;
+      padding: 14px 40px;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(194, 136, 84, 0.4);
+      transition: all 0.2s;
+    }
+
+    .btn-spin:hover {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn-spin:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* 管理清單 */
+    .list-stage h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .reset-link {
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .add-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .add-form input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .add-form input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-add {
+      background: var(--text);
+      color: #fff;
+      border: none;
+      padding: 0 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .store-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .tag {
+      background: #f5ebe1;
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tag .del {
+      cursor: pointer;
+      color: #999;
+      font-size: 12px;
+      border-radius: 50%;
+      transition: color 0.2s;
+    }
+
+    .tag .del:hover {
+      color: #d9534f;
+    }
+
+    /* 慶祝紙屑 Canvas */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="confetti-canvas"></canvas>
+
+  <header>
+    <h1>🧋 BobaRoulette</h1>
+    <p>下午茶選擇困難？拉一把交給命運決定！</p>
+  </header>
+
+  <div class="main-container">
+    <!-- 左側拉霸主舞台 -->
+    <div class="card slot-stage">
+      <div class="slot-box" id="slot-box">
+        <div class="slot-store" id="disp-store">喝什麼？</div>
+        <div class="slot-drink" id="disp-drink">點擊下方按鈕開始抽選</div>
+        <div class="slot-specs" id="disp-specs">🍹 甜度與冰塊</div>
+      </div>
+      <button class="btn-spin" id="spin-btn" onclick="spinRoulette()">🎲 幫我選！</button>
+    </div>
+
+    <!-- 右側店家清單管理 -->
+    <div class="card list-stage">
+      <h3>
+        候選手搖名單 (<span id="store-count">0</span>)
+        <span class="reset-link" onclick="resetDefaults()">恢復預設</span>
+      </h3>
+      <div class="add-form">
+        <input type="text" id="store-input" placeholder="新增店家 (例: 50嵐)" onkeypress="if(event.key==='Enter') addStore()">
+        <button class="btn-add" onclick="addStore()">加入</button>
+      </div>
+      <div class="store-tags" id="tags-container"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- 預設資料庫 ---
+    const DEFAULT_STORES = [
+      { name: "得正", drinks: ["春烏龍", "焙烏龍奶茶", "檸檬春烏龍"] },
+      { name: "50嵐", drinks: ["四季春珍波椰 (1號)", "波霸紅茶拿鐵", "冰淇淋紅茶"] },
+      { name: "麻古茶坊", drinks: ["金萱雙Q", "芝芝芒果果粒", "柳橙果粒茶"] },
+      { name: "龜記", drinks: ["紅柚翡翠", "蘋果紅萱", "碎銀子烏龍"] },
+      { name: "迷客夏", drinks: ["珍珠紅茶拿鐵", "大甲芋頭鮮奶", "青檸香茶"] },
+      { name: "清心福全", drinks: ["優多綠茶", "烏龍綠茶", "隱藏版珍珠蜂蜜鮮奶普洱"] },
+      { name: "可不可熟成紅茶", drinks: ["熟成紅茶", "胭脂紅茶", "白玉歐蕾"] },
+      { name: "萬波島嶼紅茶", drinks: ["蘭葉那堤", "紅豆粉粿鮮奶", "金萱珍波粉"] }
+    ];
+
+    const SUGARS = ["無糖 (0分)", "微糖 (3分)", "半糖 (5分)", "少糖 (7分)"];
+    const ICES = ["完全去冰", "去冰", "微冰", "少冰", "正常冰"];
+
+    let stores = JSON.parse(localStorage.getItem('boba_stores')) || DEFAULT_STORES;
+    let isSpinning = false;
+
+    // --- Web Audio 原生音效 ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq, duration) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    // --- 渲染店家標籤 ---
+    function renderTags() {
+      const container = document.getElementById('tags-container');
+      const countDisp = document.getElementById('store-count');
+      container.innerHTML = '';
+      countDisp.textContent = stores.length;
+
+      stores.forEach((store, idx) => {
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.innerHTML = `<span>${store.name}</span> <span class="del" onclick="deleteStore(${idx})">✕</span>`;
+        container.appendChild(tag);
+      });
+      localStorage.setItem('boba_stores', JSON.stringify(stores));
+    }
+
+    function addStore() {
+      const input = document.getElementById('store-input');
+      const name = input.value.trim();
+      if (!name) return;
+      stores.push({ name: name, drinks: ["招牌奶茶", "經典原茶", "珍珠奶茶"] });
+      input.value = '';
+      renderTags();
+    }
+
+    function deleteStore(idx) {
+      if (stores.length <= 1) {
+        alert("至少要保留一家手搖店喔！");
+        return;
+      }
+      stores.splice(idx, 1);
+      renderTags();
+    }
+
+    function resetDefaults() {
+      if (confirm("確定要恢復預設店家名單嗎？")) {
+        stores = JSON.parse(JSON.stringify(DEFAULT_STORES));
+        renderTags();
+      }
+    }
+
+    // --- 抽籤拉霸邏輯 ---
+    function spinRoulette() {
+      if (isSpinning || stores.length === 0) return;
+      isSpinning = true;
+      document.getElementById('spin-btn').disabled = true;
+
+      const storeDisp = document.getElementById('disp-store');
+      const drinkDisp = document.getElementById('disp-drink');
+      const specsDisp = document.getElementById('disp-specs');
+
+      let counter = 0;
+      const totalSteps = 24; // 跑動次數
+      const interval = setInterval(() => {
+        const tempStore = stores[Math.floor(Math.random() * stores.length)];
+        const tempDrink = tempStore.drinks[Math.floor(Math.random() * tempStore.drinks.length)];
+        const tempSugar = SUGARS[Math.floor(Math.random() * SUGARS.length)];
+        const tempIce = ICES[Math.floor(Math.random() * ICES.length)];
+
+        storeDisp.textContent = tempStore.name;
+        drinkDisp.textContent = tempDrink;
+        specsDisp.textContent = `🍹 ${tempSugar} / ${tempIce}`;
+
+        playBeep(400 + counter * 20, 0.05);
+        counter++;
+
+        if (counter >= totalSteps) {
+          clearInterval(interval);
+          isSpinning = false;
+          document.getElementById('spin-btn').disabled = false;
+          playBeep(880, 0.4); // 勝利音效
+          launchConfetti(); // 慶祝紙屑
+        }
+      }, 70);
+    }
+
+    // --- Canvas 原生紙屑特效 ---
+    function launchConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const pieces = [];
+      const colors = ['#f44336', '#e91e63', '#9c27b0', '#ff9800', '#4caf50', '#00bcd4'];
+
+      for (let i = 0; i < 60; i++) {
+        pieces.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          r: Math.random() * 6 + 4,
+          dx: (Math.random() - 0.5) * 14,
+          dy: (Math.random() - 0.5) * 14 - 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          tilt: Math.random() * 10
+        });
+      }
+
+      let frame = 0;
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+          p.x += p.dx;
+          p.y += p.dy;
+          p.dy += 0.25; // 重力
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.fill();
+        });
+
+        frame++;
+        if (frame < 60) {
+          requestAnimationFrame(animate);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      animate();
+    }
+
+    // 初始化
+    renderTags();
+  </script>
+</body>
+</html>
